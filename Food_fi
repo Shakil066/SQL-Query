@@ -1,1 +1,96 @@
+-- 1. How many customers has food-fi ever had?
+select
+	count(distinct customer_id) as total_number_of_customers
+from
+	foodie_fi.subscriptions;
+    
+-- 2. what is the monthly distribution of trial plan 'start_date' values for this dataset
 
+with count_customer as (
+select
+	date_format(start_date, '%M') as start_month,
+    plan_name,
+    count(customer_id) as number_of_customers
+from
+	foodie_fi.subscriptions as s
+    join
+    foodie_fi.plans as p on s.plan_id=p.plan_id
+where
+	plan_name = 'trial'
+group by
+	start_date,
+    plan_name
+order by
+	date_format(start_date, '%m'))
+    
+select
+	start_month,
+    plan_name,
+    sum(number_of_customers) as total_customer
+from
+	count_customer
+group by
+	1,2;
+    
+-- 3. What plan 'start_date' values occur after the year 2020 for this dataset?
+
+select
+	plan_name,
+    count(customer_id) as numbner_of_events
+from
+	foodie_fi.subscriptions as s
+    join
+    foodie_fi.plans as p on s.plan_id=p.plan_id
+where
+	start_date > '2020-12-31'
+group by
+	1
+order by
+	1;
+
+
+-- 4. How many of each type of pizza was delivered?
+select
+pizza_name,
+count(pizza_name) as delivered_number
+from
+(select 
+   pn.pizza_name,
+   pc.order_id,
+   pc.order_time,
+   pr.distance,
+   pr.duration
+   
+ from 
+ pizza_runner.pizza_names as pn
+  join
+ pizza_runner.customer_orders as pc
+   join
+  pizza_runner.runner_orders as pr 
+ 
+on
+pn.pizza_id=pc.pizza_id
+ and
+pc.order_id=pr.order_id) as a
+where
+    distance != 'null' and duration != 'null' 
+group by
+    1;    ; 
+
+
+
+
+
+-- 5. How many vegetarian and meatlovers were ordered by each customer?
+select
+  pc.customer_id,
+  pn.pizza_name,
+  count(pn.pizza_name) as number
+  from 
+  pizza_runner.customer_orders as pc
+  join
+  pizza_runner.pizza_names as pn
+  on
+  pc.pizza_id=pn.pizza_id
+  group by 1,2
+  order by 1;
