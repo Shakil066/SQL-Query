@@ -1,1 +1,234 @@
+Case Study Questions
+   --------------------*/
 
+-- 1. How many pizzas were ordered?
+
+SELECT
+  COUNT(pizza_id) AS number_of_pizza_ordered
+FROM
+  pizza_runner.customer_orders;
+
+-- 2. How many unique customer orders were made?
+
+SELECT
+  customer_id,
+  COUNT(DISTINCT order_id) AS unique_customer_orders
+FROM
+  pizza_runner.customer_orders
+GROUP BY
+  customer_id;
+
+-- 3. How many successful orders were delivered by each runner?
+
+SELECT
+  runner_id,
+  COUNT(order_id) AS delivered_orders
+FROM
+  pizza_runner.runner_orders
+WHERE
+  pickup_time != 'null'
+  AND distance != 'null'
+  AND duration != 'null'
+GROUP BY
+  1
+ORDER BY
+  1;
+
+-- 4. How many of each type of pizza was delivered?
+
+SELECT
+  pizza_name,
+  COUNT(pizza_name) AS number_of_pizzas_delivered
+FROM
+  pizza_runner.customer_orders AS c
+  JOIN pizza_runner.pizza_names AS n ON c.pizza_id = n.pizza_id
+  JOIN pizza_runner.runner_orders AS r ON c.order_id = r.order_id
+WHERE
+  pickup_time != 'null'
+  AND distance != 'null'
+  AND duration != 'null'
+GROUP BY
+  1
+ORDER BY
+  1;
+
+-- 5. How many Vegetarian and Meatlovers were ordered by each customer?
+
+SELECT
+  customer_id,
+  pizza_name,
+  COUNT(pizza_name) AS number_of_pizzas_delivered
+FROM
+  pizza_runner.customer_orders AS c
+  JOIN pizza_runner.pizza_names AS n ON c.pizza_id = n.pizza_id
+GROUP BY
+  customer_id,
+  pizza_name
+ORDER BY
+  customer_id;
+
+-- 6. What was the maximum number of pizzas delivered in a single order?
+
+WITH rank_added AS (
+  SELECT
+    c.order_id,
+    c.customer_id,
+    COUNT(c.order_id) AS items_in_order,
+    rank() OVER (
+      ORDER BY
+        COUNT(c.order_id) DESC
+    ) AS ranks
+  FROM
+    pizza_runner.customer_orders AS c
+    JOIN pizza_runner.runner_orders AS r ON c.order_id = r.order_id
+  WHERE
+    pickup_time != 'null'
+    AND distance != 'null'
+    AND duration != 'null'
+  GROUP BY
+    c.order_id,
+    c.customer_id
+)
+SELECT
+  order_id,
+  customer_id,
+  items_in_order
+FROM
+  rank_added
+WHERE
+  ranks = 1;
+
+
+-- 7. What was the total volume of pizzas ordered for each hour of the day?
+
+SELECT
+  hours,
+  SUM(pizzas_ordered) AS pizzas_ordered
+FROM
+  (
+    SELECT
+      EXTRACT(
+        hour
+        FROM
+          order_time
+      ) AS hours,
+      COUNT(
+        EXTRACT(
+          hour
+          FROM
+            order_time
+        )
+      ) AS pizzas_ordered
+    FROM
+      pizza_runner.customer_orders AS c
+    GROUP BY
+      order_time
+  ) AS count_hours
+GROUP BY
+  hours
+ORDER BY
+  pizzas_ordered DESC;
+
+
+-- 8. How many runners signed up for each week ?
+
+select
+	concat('Week',' ', WEEK(registration_date)) as week_number,
+    count(runner_id) as signups_per_week
+from
+	pizza_runner.runners
+group by
+	concat('Week',' ', WEEK(registration_date));
+
+-- 9. What was the average time in minutes it took for each runner to arrive at the Pizza Runner HQ to pickup the order?
+
+SELECT
+  r.runner_id,
+  ROUND(
+    AVG(
+      TIMESTAMPDIFF(MINUTE, STR_TO_DATE(c.order_time, '%Y-%m-%d %H:%i:%s'), STR_TO_DATE(r.pickup_time, '%Y-%m-%d %H:%i:%s'))
+    )
+  ) AS average_pickup_time_in_minutes
+FROM
+  pizza_runner.runner_orders AS r
+  JOIN pizza_runner.customer_orders AS c ON c.order_id = r.order_id
+WHERE
+  r.pickup_time IS NOT NULL
+  AND r.distance IS NOT NULL
+  AND r.duration IS NOT NULL
+GROUP BY
+  r.runner_id
+ORDER BY
+  r.runner_id;
+
+
+
+-- 10. What was the average distance travelled for each customer?
+
+SELECT
+  c.customer_id,
+  ROUND(AVG(CAST(distance AS DECIMAL(4,1))), 1) AS average_distance_km
+FROM
+  pizza_runner.runner_orders AS r
+JOIN
+  pizza_runner.customer_orders AS c ON c.order_id = r.order_id
+WHERE
+  pickup_time IS NOT NULL
+  AND distance IS NOT NULL
+  AND duration IS NOT NULL
+GROUP BY
+  c.customer_id
+ORDER BY
+  c.customer_id;
+
+
+-- 11. What was the difference between the longest and shortest delivery times for all orders?
+select
+	max(cast(duration as unsigned)) - min(cast(duration as unsigned)) as delivery_time_difference
+from pizza_runner.runner_orders as r
+where
+	pickup_time != 'null'
+    and distance != 'null'
+    and duration != 'null';
+
+-- 12. What was the average speed for each runner for each delivery and do you notice any trend for these values?
+select
+	order_id,
+    runner_id,
+    round( avg(cast(distance as decimal(4,1)) / (cast(duration as decimal(4,0)) / 60) ) ) as runner_average_speed
+from
+	pizza_runner.runner_orders as r
+where
+	pickup_time != 'null'
+    and distance != 'null'
+    and duration != 'null'
+group by
+	1,2;
+	
+
+-- 13. What is the successful delivery percentage for each runner?
+
+with count_delivery as (
+select
+	runner_id,
+    case
+		when pickup_time != 'null' then count(*)
+        else 0
+	end as successful,
+    case
+		when pickup_time = 'null' then count(*)
+        else 0
+	end as unsuccessful
+from
+	pizza_runner.runner_orders as r
+group by
+		runner_id,
+        pickup_time)
+        
+select
+	runner_id,
+    round((sum(successful) / (sum(successful)+sum(unsuccessful))) * 100) as successful_delivery_percentage
+from
+	count_delivery
+group by
+	1;
