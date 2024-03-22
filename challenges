@@ -1,0 +1,32 @@
+Julia asked her students to create some coding challenges. Write a query to print the hacker_id, name, and the total number of challenges created by
+each student. Sort your results by the total number of challenges in descending order. If more than one student created the same number of challenges,
+then sort the result by hacker_id. If more than one student created the same number of challenges and the count is less than the maximum number of challenges created,
+then exclude those students from the result.
+
+WITH challenge_counts AS (
+    SELECT DISTINCT
+        h.hacker_id,
+        h.name,
+        COUNT(c.challenge_id) OVER(PARTITION BY c.hacker_id) AS num_challenges
+    FROM
+        Hackers h JOIN Challenges c ON h.hacker_id = c.hacker_id
+), max_challenge_count AS (
+    SELECT MAX(num_challenges) AS maxn
+    FROM challenge_counts
+), duplicate AS (
+    SELECT num_challenges AS dups_num_chal
+    FROM challenge_counts
+    GROUP BY num_challenges
+    HAVING COUNT(*) > 1
+)
+SELECT
+    *
+FROM
+    challenge_counts
+WHERE
+    num_challenges = (SELECT maxn FROM max_challenge_count)
+    OR
+    num_challenges NOT IN (SELECT dups_num_chal FROM duplicate)
+ORDER BY
+    num_challenges DESC,
+    hacker_id
