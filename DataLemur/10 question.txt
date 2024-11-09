@@ -1,0 +1,181 @@
+1. problem name -- Histogram of Tweets
+
+
+que : Assume you're given a table Twitter tweet data, write a query to obtain 
+a histogram of tweets posted per user in 2022.
+solution:
+
+SELECT 
+  tweets_num AS tweet_bucket, 
+  cOUNT(user_id) AS users_num 
+  from
+(SELECT  user_id, count(*) as tweets_num 
+FROM tweets
+
+WHERE tweet_date BETWEEN '01/01/2022' and '12/31/2022' 
+group by 1 ) as x 
+GROUP BY 1;
+
+2. probloem : Data Science Skills
+              LinkedIn SQL Interview Question
+
+que : Given a table of candidates and their skills, you're tasked with finding the candidates best suited for an open Data Science job. You want to find candidates who are proficient in Python, Tableau, and PostgreSQL.
+
+Slove: 
+ select candidate_id from
+(SELECT candidate_id, count(skill) as num_skill 
+      FROM candidates
+   where skill in ('Python','Tableau', 'PostgreSQL')
+GROUP BY 1) x 
+LIMIT 1;
+
+3. problem : Page With No Likes
+             Facebook SQL Interview Question
+
+que : Write a query to return the IDs of the Facebook pages that have zero likes.
+
+slove :
+method 1 :
+  SELECT page_id
+FROM pages
+EXCEPT
+SELECT page_id
+FROM page_likes;
+
+method 2 :
+   SELECT page_id from pages where page_id 
+NOT IN
+(SELECT page_id
+  FROM page_likes
+  WHERE page_id IS NOT NULL) ;
+
+4. Problem : Unfinished Parts
+             Tesla SQL Interview Question
+
+QUE: Write a query to determine which parts have begun the assembly process but are not yet finished.
+
+Slove : 
+     SELECT part,assembly_step FROM parts_assembly
+      where finish_date is NULL;    
+   
+5. problem : Laptop vs. Mobile Viewership
+               New York Times SQL Interview Question
+
+que : Write a query that calculates the total viewership for laptops and
+ mobile devices where mobile is defined as the sum of tablet and phone viewership. 
+Output the total viewership for laptops as laptop_reviews and the total viewership 
+for mobile devices as mobile_views.
+
+
+slove:
+ method 1 : 
+    SELECT 
+   count(*) filter (where device_type = 'laptop') as laptop_views,
+   COUNT(*) filter (where device_type in ('tablet','phone')) as mobile_views
+  from viewership;
+
+ method 2 :
+  SELECT 
+  SUM(CASE WHEN device_type = 'laptop' THEN 1 ELSE 0 END) AS laptop_views, 
+  SUM(CASE WHEN device_type IN ('tablet', 'phone') THEN 1 ELSE 0 END) AS mobile_views 
+FROM viewership;
+
+
+6. problem  : Coin Fairness Test
+              Facebook Statistics Interview Question
+que: Say you flip a coin 10 times and observe only one heads. What would be your null 
+hypothesis and p-value for testing whether the coin is fair or not?
+
+The null hypothesis for this test would be that the coin is fair, meaning that the probability of getting heads on any given flip is 0.5.
+
+To calculate the p-value, we need to use a statistical test. In this case, we can use the binomial test to determine the probability of getting 1 or fewer heads out of 10 flips, assuming that the null hypothesis is true (i.e., the coin is fair).
+
+Using a binomial test with n = 10 and p = 0.5, we can calculate the probability of getting 1 or fewer heads:
+
+P(X ≤ 1) = binom.cdf(1, 10, 0.5) = 0.0107
+
+This means that the probability of observing 1 or fewer heads out of 10 flips, if the coin is fair, is 0.0107 or about 1.07%.
+
+The p-value is the probability of getting a result as extreme or more extreme than the observed result, assuming that the null hypothesis is true. 
+In this case, the observed result is 1 head out of 10 flips. Since the probability of getting 1 or fewer heads is 0.0107,
+ which is less than the conventional significance level of 0.05, we would reject the null hypothesis and conclude 
+that the coin is likely not fair.
+
+
+7. problem :   Average Post Hiatus (Part 1)
+               Facebook SQL Interview Question 
+
+que: Given a table of Facebook posts, for each user who posted at least twice in 2021, 
+write a query to find the number of days between each user’s first post of the year and last post of the year 
+in the year 2021. Output the user and number of the days between each user's first and last post.
+
+
+Slove :
+SELECT user_id,
+MAX(POST_DATE:: DATE) -MIN(POST_DATE :: DATE) AS DAYS_BETWEEN
+FROM posts
+where date_part('year', post_date:: DATE)= 2021
+GROUP BY user_id
+HAVING COUNT(POST_ID)>1;
+
+
+
+8. problem : Teams Power Users
+             Microsoft SQL Interview Question
+
+que: Write a query to identify the top 2 Power Users who sent the highest number of messages on Microsoft Teams 
+in August 2022. Display the IDs of these 2 users along with the total number of messages they sent.
+ Output the results in descending order based on the count of the messages.
+
+
+Slove : 
+   SELECT sender_id ,
+COUNT(message_id) as count_messages 
+FROM messages
+where EXTRACT(Month from sent_date) = '8'
+    and EXTRACT(year from sent_date)= '2022'
+GROUP BY sender_id
+ORDER BY COUNT(message_id) DESC
+limit 2;
+
+
+9. problem :  Duplicate Job Listings
+              Linkedin SQL Interview Question
+que: Assume you're given a table containing job postings from various companies on the LinkedIn platform. 
+Write a query to retrieve the count of companies that have posted duplicate job listings
+
+slove : 
+  WITH job_count_cte AS (
+  SELECT 
+    company_id, 
+    title, 
+    description, 
+    COUNT(job_id) AS job_count
+  FROM job_listings
+  GROUP BY company_id, title, description
+)
+
+SELECT COUNT(DISTINCT company_id) AS duplicate_companies
+FROM job_count_cte
+WHERE job_count > 1;
+
+10. problem : Cities With Completed Trades
+              Robinhood SQL Interview Question
+
+Que :Write a query to retrieve the top three cities that have the highest number of completed trade orders listed in 
+descending order. Output the city name and the corresponding number of completed trade orders.
+
+Slove:
+   SELECT 
+  users.city, 
+  COUNT(trades.order_id) AS total_orders 
+FROM trades 
+INNER JOIN users 
+  ON trades.user_id = users.user_id 
+WHERE trades.status = 'Completed' 
+GROUP BY users.city 
+ORDER BY total_orders DESC
+LIMIT 3;
+
+
+
